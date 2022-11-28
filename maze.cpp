@@ -82,7 +82,17 @@ void addEdge(vector<vector<string>> adj[], vector<string> vertex1, vector<string
     cout << "Finished 1, v1.0 = " << vertex1.at(0) << " & v1.1 = " << vertex1.at(1);
     cout << ", v2.0 = " << vertex2.at(0) << " & v2.1 = " << vertex2.at(1) << endl;
 
+    cout << adj->size() << "long, " << location1 << " " << location2 << endl;
+    if (location1 < 0 || location2 < 0){
+        cout << "size 0" << endl;
+        return;
+    }
+    if (location1 >= adj->size()){
+        cout << "Resize" << endl;
+        adj->resize(location1+1);
+    }
     adj[location1].push_back(vertex2);
-    adj[location2].push_back(vertex1);
+    cout << "Finished 1" << endl;
+    adj[location2].emplace_back(vertex1);
     cout << "Finished 2" << endl;
 }
