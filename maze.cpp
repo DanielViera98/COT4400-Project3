@@ -11,20 +11,32 @@ class vertex{
     public:
         void addContents(string newContent) {contents = newContent;};
         string getContents() {return contents;};
-        void addConnection(pair<char, int> connection) {connections->push_back(connection);};
+        void addConnection(pair<char, int> connection) {
+            connections->push_back(connection);
+            numConnections++;
+        };
+        int getNumConnections() {return numConnections;};
+        pair<char, int> getConnection(int i) {return connections->at(i);};
         void printConnections() {
             for (int i = 0; i < connections->size(); i++)
                 cout << connections->at(i).first << " " << connections->at(i).second << " ";
         };
+        void makeFinish() {finish = true;};
+        bool isFinish() {return finish;};
+        void makeVisited() {visited = true;};
+        bool isVisited() {return visited;};
     private:
         bool visited = false;
         bool finish = false;
         string contents = " ";
         vector<pair<char, int>> connections[1];
+        int numConnections = 0;
 
 };
 void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir);
+string BFS(vector<vertex> graph[], vertex node, string path);
 int main(){
+    //Open file
     ifstream maze;
     maze.open("tiny-maze.txt");
     if (maze.is_open())
@@ -32,16 +44,14 @@ int main(){
     else
         cout << "Problem opening input" << endl;
 
+    //Get starter info including size of graph, start index, and finish index
     int levels, rows, columns;
     maze >> levels >> rows >> columns;
-//    tuple <int, int, int> start, end;
     int temp1, temp2, temp3;
     int finish, start = -1;
     maze >> temp1 >> temp2 >> temp3;
-//    start = make_tuple(temp1, temp2, temp3);
     start = temp1 * columns * rows + temp2 * columns + temp3;
     maze >> temp1 >> temp2 >> temp3;
-//    end = make_tuple(temp1, temp2, temp3);
     finish = temp1 * columns * rows + temp2 * columns + temp3;
 
 
@@ -68,7 +78,7 @@ int main(){
         if (vertexContents.at(5) == '1')    /*if spider can move down, connect with lower vertex*/
             addEdge(graph, i, i-columns*rows, 'D', 'U');
     }
-
+    graph->at(finish).makeFinish();
     cout << endl << "DISPLAY CONTENTS" << endl;
     //display contents of graph
     
@@ -78,14 +88,15 @@ int main(){
         cout << graph->at(i).getContents() << " ";
         graph->at(i).printConnections();
     }
-    
-
+    string path = "";
+    path = BFS(graph, graph->at(start), path);
+    cout << "PATH TO GOAL: " << path << endl;
 
     return 0;
 }
 
 void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir){
-    cout << "(Connecting " << graph->at(location1).getContents() << " to " << graph->at(location2).getContents() << ")" << endl;
+    cout << "(Connecting " << graph->at(location1).getContents() << " " << graph->at(location2).getContents() << ")" << endl;
     pair<char, int> newConnection;
     newConnection.first = direction;
     newConnection.second = location2;
@@ -96,3 +107,22 @@ void addEdge(vector<vertex> graph[], int location1, int location2, char directio
     graph->at(location2).addConnection(newConnection);
 }
 
+string BFS(vector<vertex> graph[], vertex node, string path){
+    node.makeVisited();
+    if (node.isFinish()){
+        cout << "FINISHED PATH: " << path << endl;
+        return path;
+    }
+    else{
+        for (int i = 0; i < node.getNumConnections(); i++){
+            if (graph->at(node.getConnection(i).second).isVisited() == 0){
+                node.makeVisited();
+                graph->at(node.getConnection(i).second).makeVisited();
+                path += node.getConnection(i).first;
+                BFS(graph, graph->at(node.getConnection(i).second), path);
+                cout << path << endl;
+            }
+        }
+    }
+    return "";
+}
