@@ -1,26 +1,18 @@
 #include <iostream>
 #include <fstream>
-#include <tuple>
 #include <vector>
-#include <list>
 
 using namespace std;
 
 
 class vertex{
     public:
-        void addContents(string newContent) {contents = newContent;};
-        string getContents() {return contents;};
         void addConnection(pair<char, int> connection) {
             connections->push_back(connection);
             numConnections++;
         };
         int getNumConnections() {return numConnections;};
         pair<char, int> getConnection(int i) {return connections->at(i);};
-        void printConnections() {
-            for (int i = 0; i < connections->size(); i++)
-                cout << connections->at(i).first << " " << connections->at(i).second << " ";
-        };
         void makeFinish() {finish = true;};
         bool isFinish() {return finish;};
         void makeVisited() {visited = true;};
@@ -28,24 +20,28 @@ class vertex{
     private:
         bool visited = false;
         bool finish = false;
-        string contents = " ";
         vector<pair<char, int>> connections[1];
         int numConnections = 0;
 
 };
-void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir, ofstream& pairs);
+void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir);
 void BFS(vector<vertex> graph[], vertex node, string path, string *final_path);
 int main(){
-    //Open file
+    //Open input file
     ifstream maze;
-    maze.open("tiny-maze.txt");
+    maze.open("itsybitsy-maze.txt");
     if (maze.is_open())
         cout << "Success" << endl;
     else
         cout << "Problem opening input" << endl;
 
-    ofstream pairs;
-    pairs.open("pairs.txt");
+    //open output file
+    ofstream output;
+    output.open("output.txt");
+    if (output.is_open())
+        cout << "Success" << endl;
+    else
+        cout << "Problem opening output" << endl;
 
     //Get starter info including size of graph, start index, and finish index
     int levels, rows, columns;
@@ -57,76 +53,64 @@ int main(){
     maze >> temp1 >> temp2 >> temp3;
     finish = temp1 * columns * rows + temp2 * columns + temp3;
 
-
-    cout << levels << " levels, " << rows << " rows, " << columns << " columns " << endl;
-    cout << "Start = " << start << endl;
-    cout << "Finish = " << finish << endl;
-
     //6 bit directional, North, East, South, West, Up, Down. 1 means connection, 0 means none
     int graphSize = rows * columns * levels;
-    vector<vertex> graph[graphSize];
+    vector<vertex> graph[graphSize];        //create graph
     string vertexContents;
-    for (int i = 0; i < graphSize; i++){
+    for (int i = 0; i < graphSize; i++){        //iterate through input file
         maze >> vertexContents;
-        vertex V;
+        vertex V;                               //create vertex
         graph->push_back(V);
-        graph->at(i).addContents(vertexContents);
-        string test = graph->at(i).getContents();
-        cout << test;
-        cout << graph->at(i).getContents() << " ";
         if (vertexContents.at(0) == '1')    /*if spider can move north, connect with northern vertex*/
-            addEdge(graph, i, i-columns, 'N', 'S', pairs);
+            addEdge(graph, i, i-columns, 'N', 'S');
         if (vertexContents.at(3) == '1')    /*if spider can move west, connect with western vertex*/
-            addEdge(graph, i, i-1, 'W', 'E', pairs);
+            addEdge(graph, i, i-1, 'W', 'E');
         if (vertexContents.at(5) == '1')    /*if spider can move down, connect with lower vertex*/
-            addEdge(graph, i, i-columns*rows, 'D', 'U', pairs);
+            addEdge(graph, i, i-columns*rows, 'D', 'U');
     }
+    //set end node to be finish
     graph->at(finish).makeFinish();
-    cout << endl << "DISPLAY CONTENTS" << endl;
-    //display contents of graph
     
-    for (int i = 0; i < graphSize; i++){
-        if (i % 3 == 0) cout << endl;
-        if (i % 9 == 0) cout << endl;
-        cout << graph->at(i).getContents() << " ";
-        graph->at(i).printConnections();
-    }
-
-    
+    //get final path, call BFS, output result to file
     string final_path;
     string path = "";
     BFS(graph, graph->at(start), path, &final_path);
-    cout << endl << "PATH TO GOAL: " << final_path << endl;
+    output << final_path;
+
     return 0;
 }
 
-void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir, ofstream& pairs){
-    cout << "(Connecting " << graph->at(location1).getContents() << " " << graph->at(location2).getContents() << ")" << endl;
-    pairs << graph->at(location1).getContents() << " " << graph->at(location2).getContents() << " " << direction << "-" << oppositeDir << endl;
+//adds edge between two vertices
+void addEdge(vector<vertex> graph[], int location1, int location2, char direction, char oppositeDir){
     pair<char, int> newConnection;
+
+    //create connection from first to second vertex
     newConnection.first = direction;
     newConnection.second = location2;
     graph->at(location1).addConnection(newConnection);
 
+    //create connection from second to first vertex
     newConnection.first = oppositeDir;
     newConnection.second = location1;
     graph->at(location2).addConnection(newConnection);
 }
 
+//Do a BFS to find the path from start to end
 void BFS(vector<vertex> graph[], vertex node, string path, string *final_path){
-    node.makeVisited();
+    //if the node is the final node, change the pointer to the correct path
     if (node.isFinish()){
         *final_path = path;
     }
     else{
+        //iterate through the vertex's edge list
         for (int i = 0; i < node.getNumConnections(); i++){
+            //if the edge goes to a node not yet visited, call BFS on it
             if (graph->at(node.getConnection(i).second).isVisited() == 0){
-                node.makeVisited();
-                graph->at(node.getConnection(i).second).makeVisited();
-                path = path + node.getConnection(i).first + " ";
-                BFS(graph, graph->at(node.getConnection(i).second), path, final_path);
-                path.pop_back();
-                path.pop_back();
+                graph->at(node.getConnection(i).second).makeVisited();      //mark next node as visited
+                path = path + node.getConnection(i).first + " ";            //update path with next direction
+                BFS(graph, graph->at(node.getConnection(i).second), path, final_path);  //go to next node
+                path.pop_back();    //removes space    
+                path.pop_back();    //removes previous step
             }
         }
     }
